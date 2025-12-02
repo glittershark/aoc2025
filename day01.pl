@@ -55,11 +55,11 @@ run_sequence_part2([], _, Acc, Acc).
 run_sequence_part2([Rotation | Rotations], Pos, Acc, Zeros) :-
     rotate(Pos, Rotation, Pos1),
     (  Rotation = left - Amount
-    -> Target #= Pos - 100 + Amount
+    -> Target #= ((100 - Pos) mod 100) + Amount
     ;  Rotation = right - Amount,
        Target #= Pos + Amount
     ),
-    Num_rotations #= abs(Target div 100),
+    Num_rotations #= abs(Target // 100),
     Acc1 #= Acc + Num_rotations,
     run_sequence_part2(Rotations, Pos1, Acc1, Zeros).
 
