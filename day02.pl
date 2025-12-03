@@ -58,10 +58,11 @@ invalid_id_part2(Id) :-
 
 solution_part2(File, Solution) :-
     read_input(File, Ranges),
-    setof(
+    bagof(
         Id,
-        ( id_in_ranges(Id, Ranges),
-          invalid_id_part2(Id)
+        (
+            id_in_ranges(Id, Ranges),
+            invalid_id_part2(Id)
         ),
         Invalid_ids),
     sum_list(Invalid_ids, Solution).
