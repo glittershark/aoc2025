@@ -11,6 +11,7 @@
 
                   chunks/3,
                   replace1/4,
+                  replace0/5,
                   list_product/2
                  ]).
 :- use_module(library(clpfd)).
@@ -91,6 +92,10 @@ replace1(L, P, E, R) :-
     length(Pre, PreLen),
     append(Pre, [_|T], L),
     append(Pre, [E|T], R).
+
+replace0(List, Index, OldElem, NewElem, NewList) :-
+   nth0(Index,List,OldElem,Transfer),
+   nth0(Index,NewList,NewElem,Transfer).
 
 list_product([], 1).
 list_product([X | Xs], P) :-
