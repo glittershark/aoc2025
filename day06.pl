@@ -47,6 +47,48 @@ read_input(File, Problems) :-
         Problems
     ).
 
-solution_part1(Problems, Solution) :-
+solution(Problems, Solution) :-
     maplist(run_operation, Problems, Results),
     sumlist(Results, Solution).
+
+%%%
+
+split_on_empty_lines([], Acc, Acc).
+split_on_empty_lines(Input, Acc, Res) :-
+    append(Chunk, [Space_line | Rest], Input),
+    maplist(=(' '), Space_line),
+    !,
+    split_on_empty_lines(Rest, [Chunk | Acc], Res).
+
+split_on_empty_lines(Input, Res) :-
+    split_on_empty_lines(Input, [], Res).
+
+chunk_operation([Hd | Tl], operation(Op, Nums)) :-
+    reverse(Hd, [Op | _]),
+    append(First_num, [Op], Hd),
+    maplist(
+        [Num_chars_padded, Num] >> (
+            maplist(char_code, Num_chars_padded, Num_codes_padded),
+            phrase((blanks, integer(Num), blanks), Num_codes_padded),
+            !
+        ),
+        [First_num | Tl],
+        Nums).
+
+read_input_part2(File, Problems) :-
+    open(File, read, Stream),
+    read_lines(Stream, Line_strings),
+    maplist(string_chars, Line_strings, Line_chars),
+    maplist(
+        ({Len}/[Line, Line_padded] >> (
+            length(Line_padded, Len),
+            append(Line, Padding, Line_padded),
+            maplist(=(' '), Padding)
+        )),
+        Line_chars,
+        Line_chars_padded
+    ),
+    transpose(Line_chars_padded, Transposed),
+    split_on_empty_lines(Transposed, Chunks),
+    maplist(chunk_operation, Chunks, Problems),
+    !.
