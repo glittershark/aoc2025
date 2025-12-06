@@ -3,6 +3,7 @@
 :- use_module(utils).
 :- use_module(library(readutil)).
 :- use_module(library(clpfd)).
+:- use_module(library(yall)).
 :- use_module(library(dcg/basics), [integer/3]).
 :- use_module(library(aggregate)).
 
@@ -48,3 +49,9 @@ solution_part2_slow(Db, Solution) :-
         Fresh_ingredients
     ),
     length(Fresh_ingredients, Solution).
+
+solution_part2(database(Ranges, _), Solution) :-
+    maplist(([Lo - Hi, Domain] >> (Domain = Lo .. Hi)), Ranges, [Dom1 | Doms]),
+    foldl([Dom, Acc, Res] >> (Res = Dom \/ Acc), Doms, Dom1, Domain),
+    Ingredient in Domain,
+    fd_size(Ingredient, Solution).
