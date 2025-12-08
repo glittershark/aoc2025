@@ -49,3 +49,5 @@ solution_part1([Source_row | Rows], Solution) :-
 solution_part1(Solution) :-
     read_input("day07.input", Diagram),
     solution_part1(Diagram, Solution).
+
+%%%
