@@ -6,6 +6,7 @@
 :- use_module(library(clpfd)).
 :- use_module(library(aggregate)).
 :- use_module(library(dcg/basics)).
+:- use_module(library(ordsets)).
 
 %%%
 
@@ -16,44 +17,35 @@ read_input(File, Diagram) :-
 
 %%%
 
-width([Row0 | _ ], W) :-
-    length(Row0, W).
+will_be_split(Y, Beams, Row) :-
+    member(Y, Beams),
+    nth0(Y, Row, '^').
 
-at_pos(X - Y, Diagram, V) :-
-    width(Diagram, Width),
-    Y #>= 0, Y #< Width,
-    nth0(X, Diagram, Row),
-    nth0(Y, Row, V).
-
-%% :- table start_position(_, _).
-start_position(0 - Y, Diagram) :-
-    at_pos(0 - Y, Diagram, 'S').
-
-%% :- table splitter_at(_, ).
-splitter_at(Pos, Diagram) :-
-    at_pos(Pos, Diagram, '^').
-
-beam_at(X - Y, Diagram) :-
-    Prev #= X - 1,
-    (Splitter_y #= Y - 1 ; Splitter_y #= Y + 1),
-    splitter_at(X - Splitter_y, Diagram),
-    beam_at(Prev - Splitter_y, Diagram).
-beam_at(X - Y, Diagram) :-
-    X #> 1,
-    \+ splitter_at(X - Y, Diagram),
-    Prev #= X - 1,
-    beam_at(Prev - Y, Diagram).
-beam_at(1 - Y, Diagram) :-
-    start_position(0 - Y, Diagram).
-
-solution_part1(Diagram, Solution) :-
+beam_project(Beams, Row, Next_beams, Splits) :-
+    aggregate_all(set(Y), Y, (member(Y, Beams), \+ nth0(Y, Row, '^')), Unsplit_beams),
     aggregate_all(
-        count,
-        X - Y,
-        (
-            splitter_at(X - Y, Diagram),
-            Prev #= X - 1,
-            beam_at(Prev - Y, Diagram)
+        set(Y),
+        Y,
+        ((Y1 #= Y + 1 ; Y1 #= Y - 1),
+         will_be_split(Y1, Beams, Row)
         ),
-        Solution
-    ).
+        Split_beams
+    ),
+    aggregate_all(count, Y, (will_be_split(Y, Beams, Row)), Splits),
+    append(Unsplit_beams, Split_beams, Next_beams_unsorted),
+    sort(Next_beams_unsorted, Next_beams).
+
+count_splits([], _, Acc, Acc).
+count_splits([Row | Rows], Beams, Acc, Res) :-
+    beam_project(Beams, Row, Next_beams, Splits),
+    Acc1 is Acc + Splits,
+    count_splits(Rows, Next_beams, Acc1, Res).
+
+solution_part1([Source_row | Rows], Solution) :-
+    nth0(Y, Source_row, 'S'),
+    Beams = [Y],
+    count_splits(Rows, Beams, 0, Solution).
+
+solution_part1(Solution) :-
+    read_input("day07.input", Diagram),
+    solution_part1(Diagram, Solution).
