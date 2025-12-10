@@ -52,35 +52,83 @@ solution_part1(Solution) :-
 
 %%%
 
+num_split_beams(Y - Count, Beams, Row) :-
+    gen_assoc(Y, Beams, Count),
+    nth0(Y, Row, '^').
+
+pairs_multiset(Pairs, Assoc) :-
+    empty_assoc(Empty),
+    foldl(
+        multiset_add,
+        Pairs,
+        Empty,
+        Assoc
+    ).
+
+multiset_add(Key - Value, Assoc1, Assoc2) :-
+    ( get_assoc(Key, Assoc1, Current_value), !
+    ; Current_value = 0
+    ),
+    New_value #= Current_value + Value,
+    put_assoc(Key, Assoc1, New_value, Assoc2).
+
 list_multiset(List, Multiset) :-
-    false.
+    maplist(
+        [E, E - 1] >> true,
+        List,
+        Pairs
+    ),
+    empty_assoc(Empty),
+    foldl(
+        multiset_add,
+        Pairs,
+        Empty,
+        Multiset
+    ).
 
 merge_multisets(Set1, Set2, Set) :-
-    false.
+    assoc_to_list(Set2, Pairs),
+    foldl(
+        multiset_add,
+        Pairs,
+        Set1,
+        Set
+    ).
+
+multiset_cardinality(Assoc, Cardinality) :-
+    assoc_to_list(Assoc, Pairs),
+    maplist(
+        [_ - V, V] >> true,
+        Pairs,
+        Counts
+    ),
+    sum_list(Counts, Cardinality).
 
 beam_project_part2(Beams, Row, Next_beams) :-
     aggregate_all(
-        bag(Y),
+        bag(Y - Count),
         (
-            get_assoc(Y, _, Beams),
+            gen_assoc(Y, Beams, Count),
             \+ nth0(Y, Row, '^')
         ),
         Unsplit_beams
     ),
 
     aggregate_all(
-        bag(Y),
+        bag(Y - Count),
         (
             (Y1 #= Y + 1 ; Y1 #= Y - 1),
-            will_be_split(Y1, Beams, Row)
+            num_split_beams(Y1 - Count, Beams, Row)
         ),
         Split_beams
     ),
 
-    append(Unsplit_beams, Split_beams, Next_beams).
+    pairs_multiset(Unsplit_beams, Unsplit_ms),
+    pairs_multiset(Split_beams, Split_ms),
+    merge_multisets(Unsplit_ms, Split_ms, Next_beams).
 
 count_timelines([], Beams, Res) :-
-    length(Beams, Res).
+    multiset_cardinality(Beams, Res).
 count_timelines([Row | Rows], Beams, Res) :-
     beam_project_part2(Beams, Row, Next_beams),
     count_timelines(Rows, Next_beams, Res).
