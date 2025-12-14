@@ -18,36 +18,28 @@ read_input(File, Positions) :-
 
 %%%
 
-:- table(distance/3).
 distance(pos(X1, Y1, Z1), pos(X2, Y2, Z2), Dist) :-
     Dist is sqrt((X1 - X2) ^ 2 + (Y1 - Y2) ^ 2 + (Z1 - Z2) ^ 2).
 
-closest_points(Points, Already_connected, Positions) :-
-    aggregate_all(
-        min(Dist, Point1 - Point2),
-        ( select(Point1, Positions, Positions2),
-          member(Point2, Positions2),
-          \+ ( set_memberchk(Point1 - Point2, Already_connected)
-             ; set_memberchk(Point2 - Point1, Already_connected)
-             ),
-          distance(Point1, Point2, Dist)
-        ),
-        min(_, Points)),
-    !.
-closest_points(Point1 - Point2, Positions) :-
-    empty_set(Already_connected),
-    closest_points(Point1 - Point2, Already_connected, Positions).
+pairs(Positions, Pairs) :-
+    setof(
+        P1 - P2,
+        (member(P1, Positions),
+         member(P2, Positions),
+         P1 @< P2),
+        Pairs).
 
-first_n_connections(0, _, Acc, Res) :-
-    set_to_list(Acc, Res).
-first_n_connections(N, Positions, Acc, Res) :-
-    closest_points(Points, Acc, Positions),
-    N_next is N - 1,
-    set_add(Points, Acc, Acc_next),
-    first_n_connections(N_next, Positions, Acc_next, Res).
 first_n_connections(N, Positions, Connections) :-
-    empty_set(Acc),
-    first_n_connections(N, Positions, Acc, Connections).
+    pairs(Positions, Pairs),
+    maplist(
+        [Pair, Dist - Pair] >> (P1 - P2 = Pair, distance(P1, P2, Dist)),
+        Pairs,
+        Pair_dists),
+    keysort(Pair_dists, Pair_dists_sorted),
+    append(Conn_dists, _, Pair_dists_sorted),
+    length(Conn_dists, N),
+    pairs_values(Conn_dists, Connections).
+
 
 % sccs(Sccs, By_point)
 %
