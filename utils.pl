@@ -12,9 +12,18 @@
                   chunks/3,
                   replace1/4,
                   replace0/5,
-                  list_product/2
-                 ]).
+                  list_product/2,
+
+                  empty_set/1,
+                  set_add/3,
+                  set_del/3,
+                  set_member/2,
+                  set_memberchk/2,
+                  list_to_set/2,
+                  set_to_list/2,
+                  set_cardinality/2]).
 :- use_module(library(clpfd)).
+:- use_module(library(assoc)).
 
 read_lines(Stream, []) :- at_end_of_stream(Stream).
 read_lines(Stream, [X | L]) :-
@@ -104,6 +113,33 @@ list_product([X | Xs], P) :-
 
 %%%
 
+empty_set(Set) :- empty_assoc(Set).
+
+set_add(Elem, Set0, Set1) :-
+   put_assoc(Elem, Set0, true, Set1).
+
+set_del(Elem, Set0, Set1) :-
+   del_assoc(Elem, Set0, _, Set1).
+
+set_member(Elem, Set) :-
+   gen_assoc(Elem, Set, true).
+
+set_memberchk(Elem, Set) :-
+   get_assoc(Elem, Set, true).
+
+list_to_set(List, Set) :-
+   empty_set(Set0),
+   foldl(set_add, List, Set0, Set).
+
+set_to_list(Set, List) :-
+   assoc_to_keys(Set, List).
+
+set_cardinality(Set, Cardinality) :-
+   set_to_list(Set, L),
+   length(L, Cardinality).
+
+%%%
+
 :- begin_tests(utils).
 
 test(replace) :-
@@ -115,5 +151,21 @@ test(replace) :-
 test(list_product) :-
    list_product([1234], 1234),
    list_product([1, 2, 3, 4], 24).
+
+test(sets) :-
+   empty_set(Set0),
+   set_cardinality(Set0, 0),
+   set_to_list(Set0, []),
+
+   set_add(1, Set0, Set1),
+   set_cardinality(Set1, 1),
+   set_to_list(Set1, [1]),
+   set_member(1, Set1),
+   set_add(1, Set1, Set1),
+   \+ set_member(2, Set1),
+
+   set_add(2, Set1, Set2),
+   set_member(2, Set2),
+   set_del(2, Set2, Set1).
 
 :- end_tests(utils).
