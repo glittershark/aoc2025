@@ -36,6 +36,7 @@ first_n_connections(N, Positions, Connections) :-
         Pairs,
         Pair_dists),
     keysort(Pair_dists, Pair_dists_sorted),
+    !,
     append(Conn_dists, _, Pair_dists_sorted),
     length(Conn_dists, N),
     pairs_values(Conn_dists, Connections).
