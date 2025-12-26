@@ -56,12 +56,17 @@ sccs([Point1 - Point2 | Connections], sccs(Sccs, By_point), Res) :-
         % Both are in different sccs, merge (scc2 into scc1)
         get_assoc(Scc_id2, Sccs, Scc2),
         assoc_to_keys(Scc2, Scc2_points),
-        foldl([Point, Scc_prev - By_point_prev, Scc_next - By_point_next]>> (
-                  put_assoc(Point, Scc_prev, true, Scc_next),
-                  put_assoc(Point, By_point_prev, Scc_id1, By_point_next)),
-              Scc2_points,
-              Scc1 - By_point,
-              Scc1_next - By_point_next),
+        foldl(
+            {Scc_id1} / [ Point,
+                          Scc_prev - By_point_prev,
+                          Scc_next - By_point_next
+                        ] >> (
+                put_assoc(Point, Scc_prev, true, Scc_next),
+                put_assoc(Point, By_point_prev, Scc_id1, By_point_next)
+            ),
+            Scc2_points,
+            Scc1 - By_point,
+            Scc1_next - By_point_next),
         del_assoc(Scc_id2, Sccs, _, Sccs_next1),
         put_assoc(Scc_id1, Sccs_next1, Scc1_next, Sccs_next)
       ; % Otherwise, add point2 to Scc1
@@ -80,7 +85,10 @@ sccs([Point1 - Point2 | Connections], sccs(Sccs, By_point), Res) :-
       ; max_assoc(Sccs, Max_id, _),
         Scc_id is Max_id + 1
       ),
-      list_to_assoc([ Point1 - true, Point2 - true ], Scc),
+      ( Point1 = Point2 ->
+        list_to_assoc([Point1 - true], Scc)
+      ; list_to_assoc([ Point1 - true, Point2 - true ], Scc)
+      ),
       put_assoc(Scc_id, Sccs, Scc, Sccs_next),
       put_assoc(Point1, By_point, Scc_id, By_point_next1),
       put_assoc(Point2, By_point_next1, Scc_id, By_point_next)
@@ -109,3 +117,34 @@ solution_part1(N_conns, Positions, Solution) :-
 
 solution_part1(Positions, Solution) :-
     solution_part1(1000, Positions, Solution).
+
+%%%
+%%% part 2
+%%%
+
+complete_circuit([Pair | Pairs], Sccs, Conns, Res) :-
+    sccs([Pair], Sccs, Sccs1),
+    sccs(Components, _) = Sccs1,
+    ( assoc_to_keys(Components, [_]) ->
+      Res = [Pair | Conns]
+    ;
+    complete_circuit(Pairs, Sccs1, [Pair | Conns], Res)
+    ).
+
+complete_circuit(Positions, Conns) :-
+    maplist([P, P - P] >> true, Positions, Self_conns),
+    sccs(Self_conns, Init_sccs),
+    pairs(Positions, Pairs),
+    maplist(
+        [Pair, Dist - Pair] >> (P1 - P2 = Pair, distance(P1, P2, Dist)),
+        Pairs,
+        Pair_dists),
+    keysort(Pair_dists, Pair_dists_sorted),
+    pairs_values(Pair_dists_sorted, Pairs_sorted),
+    !,
+    complete_circuit(Pairs_sorted, Init_sccs, [], Conns).
+
+solution_part2(Positions, Solution) :-
+    complete_circuit(Positions, [Last_conn | _]),
+    pos(X1, _, _) - pos(X2, _, _) = Last_conn,
+    Solution is X1 * X2.
