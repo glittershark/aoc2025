@@ -32,30 +32,18 @@ solution_part1(Positions, Area) :-
         ),
         max(Area, _)).
 
-shape_string(Positions, Lines_chars) :-
-    aggregate_all(max(X), member(pos(X, _), Positions), Max_x),
-    aggregate_all(min(X), member(pos(X, _), Positions), Min_x),
-    aggregate_all(max(Y), member(pos(_, Y), Positions), Max_y),
-    aggregate_all(min(Y), member(pos(_, Y), Positions), Min_y),
+%%%
+%%% part 2
+%%%
 
-    X_dim is Max_x - Min_x,
-    Y_dim is Max_y - Min_y,
-
-    length(Lines_chars, X_dim),
-    maplist({Y_dim} / [Line] >> length(Line, Y_dim), Lines_chars),
-    maplist({Lines_chars, X_min, Y_min} / [pos(X, Y)] >> (
-                X_norm is X - X_min,
-                Y_norm is Y - Y_min,
-
-                nth1(X_norm, Lines_chars, Line),
-                nth1(Y_norm, Line, '#')
-            ),
-            Positions),
-    maplist(
-        [Line] >> (
-            maplist(
-                [Char] >> (var(Char) -> Char = '.' ; true),
-                Line
-            )
-        ),
-        Lines_chars).
+inside(Point, Rectangle) :-
+    pos(X_pt, Y_pt) = Point,
+    pos(X1, Y1) - pos(X2, Y2) = Rectangle,
+    ( X1 < X2 -> X_pt > X1
+    ; X2 < X1 -> X_pt > X2
+    ; X1 = X2, X_pt = X1
+    ),
+    ( Y1 < Y2 -> Y_pt > Y1
+    ; Y2 < Y1 -> Y_pt > Y2
+    ; Y1 = Y2, Y_pt = Y1
+    ).
