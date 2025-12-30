@@ -13,6 +13,13 @@
 
 :- record machine(goal_state, buttons, joltages).
 
+binary_decimal([], 0).
+binary_decimal([Bit | Bits], Res) :-
+    Bit in 0 \/ 1,
+    length(Bits, Position),
+    binary_decimal(Bits, Next),
+    Res #= Bit * (2 ^ Position) + Next.
+
 %%%
 %%% Parsing
 %%%
@@ -21,12 +28,6 @@
 %%%
 %%% Buttons are also binary numbers, with "pressing a button" represented as
 %%% taking the current state of the lights XOR with the button
-
-binary_decimal([], 0).
-binary_decimal([Bit | Bits], Res) :-
-    length(Bits, Position),
-    binary_decimal(Bits, Next),
-    Res is Bit * (2 ^ Position) + Next.
 
 goal_state_single(0) --> ".".
 goal_state_single(1) --> "#".
@@ -92,10 +93,8 @@ read_input(File, Machines) :-
 press_button(Button, State0, State1) :-
     State1 is State0 xor Button.
 
-press_buttons([], State, State).
-press_buttons([Button | Buttons], State0, State_final) :-
-    press_button(Button, State0, State1),
-    press_buttons(Buttons, State1, State_final).
+press_buttons(Buttons, State0, State1) :-
+    foldl(press_button, Buttons, State0, State1).
 
 machine_button_sequence(Machine, Sequence) :-
     machine_buttons(Machine, Buttons),
@@ -114,4 +113,57 @@ shortest_button_sequence_len(Machine, Len) :-
 
 solution_part1(Machines, Solution) :-
     maplist(shortest_button_sequence_len, Machines, Sequence_lens),
+    sumlist(Sequence_lens, Solution).
+
+%%%
+%%% Part 2
+%%%
+
+press_button_joltage(Bits, Joltages0, Joltages1) :-
+    maplist([Bit, Joltage0, Joltage1] >> (Joltage1 #= Joltage0 + Bit),
+            Bits,
+            Joltages0,
+            Joltages1).
+
+press_buttons_joltage(Buttons, Joltage0, Joltage1) :-
+    foldl(press_button_joltage, Buttons, Joltage0, Joltage1).
+
+machine_joltage_sequence(Machine, Sequence) :-
+    machine_buttons(Machine, Buttons),
+    machine_joltages(Machine, Target_joltages),
+
+    length(Target_joltages, Machine_len),
+    maplist(
+        {Machine_len} / [Bits, Button] >> (
+            binary_decimal(Bits, Button),
+            length(Bits, Machine_len)
+        ),
+        Bits_buttons,
+        Buttons),
+    !,
+
+    same_length(Target_joltages, Joltages0),
+    maplist(=(0), Joltages0),
+
+    foldl(
+        {Bits_buttons, Target_joltages} / [Bits, Joltages0, Joltages1] >> (
+            member(Bits, Bits_buttons),
+            press_button_joltage(Bits, Joltages0, Joltages1),
+            maplist(#=<, Joltages1, Target_joltages)
+        ),
+        Sequence,
+        Joltages0,
+        Target_joltages
+    ).
+
+shortest_joltage_sequence_len(Machine, Len) :-
+    aggregate_all(
+        min(Len, Sequence),
+        (machine_joltage_sequence(Machine, Sequence),
+         length(Sequence, Len)
+        ),
+        min(Len, _)).
+
+solution_part2(Machines, Solution) :-
+    maplist(shortest_joltage_sequence_len, Machines, Sequence_lens),
     sumlist(Sequence_lens, Solution).
