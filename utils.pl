@@ -9,6 +9,8 @@
                   phrase_file/3,
                   lazy_sequence/5,
 
+                  number_base_decimal/3,
+
                   chunks/3,
                   replace1/4,
                   replace0/5,
@@ -138,6 +140,10 @@ set_cardinality(Set, Cardinality) :-
    set_to_list(Set, L),
    length(L, Cardinality).
 
+number_base_decimal(N, Base, Dec) :-
+   atomic_list_concat([Base, '\'', N], Atom),
+   atom_to_term(Atom, Dec, _).
+
 %%%
 
 :- begin_tests(utils).
@@ -167,5 +173,8 @@ test(sets) :-
    set_add(2, Set1, Set2),
    set_member(2, Set2),
    set_del(2, Set2, Set1).
+
+test(number_base_decimal) :-
+   number_base_decimal("ff", 16, 255).
 
 :- end_tests(utils).
