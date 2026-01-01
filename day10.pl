@@ -85,7 +85,8 @@ read_input(File, Machines) :-
     open(File, read, Stream),
     read_lines(Stream, Lines),
     maplist([Line, Machine] >> string_phrase(machine(Machine), Line),
-            Lines, Machines).
+            Lines, Machines),
+    !.
 
 %%%
 %%% Part 1
