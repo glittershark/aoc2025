@@ -19,6 +19,7 @@ read_input(File, Graph) :-
     read_lines(Stream, Lines),
     maplist(line_edges, Lines, Graph).
 
+:- table edge/3.
 edge(Graph, V1, V2) :-
     member(V1 - Outgoing, Graph),
     member(V2, Outgoing).
@@ -35,3 +36,17 @@ paths(Graph, V1, V2, Paths) :-
 
 solution_part1(Graph, Solution) :-
     aggregate_all(count, Path, path(Graph, you, out, Path), Solution).
+
+%%%
+%%% Part 2
+%%%
+
+solution_part2(Graph, Solution) :-
+    aggregate_all(
+        count,
+        Path,
+        ( path(Graph, svr, out, Path),
+          memberchk(dac, Path),
+          memberchk(fft, Path)
+        ),
+        Solution).
