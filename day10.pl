@@ -8,6 +8,7 @@
 :- use_module(library(dcg/basics)).
 :- use_module(library(dcg/high_order)).
 :- use_module(library(clpfd)).
+:- use_module(library(simplex), []).
 
 %%%
 
@@ -157,12 +158,51 @@ machine_joltage_sequence(Machine, Sequence) :-
     ).
 
 shortest_joltage_sequence_len(Machine, Len) :-
-    aggregate_all(
-        min(Len, Sequence),
-        (machine_joltage_sequence(Machine, Sequence),
-         length(Sequence, Len)
+    machine_buttons(Machine, Buttons),
+    machine_joltages(Machine, Target_joltages),
+    length(Target_joltages, Machine_len),
+    maplist(
+        {Machine_len} / [Bits, Button] >> (
+            binary_decimal(Bits, Button),
+            length(Bits, Machine_len)
         ),
-        min(Len, _)).
+        Bits_buttons,
+        Buttons),
+    !,
+
+    findall(button(I), nth0(I, Buttons, _), Button_vars),
+    findall(I, nth0(I, Target_joltages, _), Joltage_indexes),
+
+    simplex:gen_state(State0),
+    foldl(
+        [Button_var, State_0, State_1] >>
+        ( simplex:constraint(integral(Button_var), State_0, State_1) ),
+        Button_vars,
+        State0,
+        State1
+    ),
+    foldl(
+        {Bits_buttons, Button_vars} / [Joltage, Joltage_index, State_0, State_1] >> (
+            maplist(
+                {Joltage_index} / [Button, Var, Expr] >>
+                ( nth0(Joltage_index, Button, Button_joltage),
+                  Expr = Button_joltage * Var
+                ),
+                Bits_buttons,
+                Button_vars,
+                Exprs
+            ),
+            simplex:constraint(Exprs = Joltage, State_0, State_1)
+        ),
+        Target_joltages,
+        Joltage_indexes,
+        State1,
+        State2),
+
+    maplist([Button_var, 1 * Button_var] >> true, Button_vars, Objective),
+    !,
+    simplex:minimize(Objective, State2, State3),
+    simplex:objective(State3, Len).
 
 solution_part2(Machines, Solution) :-
     maplist(shortest_joltage_sequence_len, Machines, Sequence_lens),
